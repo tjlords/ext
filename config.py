@@ -23,7 +23,7 @@ CHANNEL_ID2 = int(os.environ.get("CHANNEL_ID2", "0"))  # Default to 0 if empty
 # ------------------------------------------------
 MONGO_URL = os.environ.get("MONGO_URL", "")
 # -----------------------------------------------
-PREMIUM_LOGS = int(os.environ.get("PREMIUM_LOGS", ""))
+PREMIUM_LOGS = int(os.environ.get("PREMIUM_LOGS", "0"))
 # -----------------------------------------------
 join = '<a href="">✳️ JOIN BACKUP</a>'
 # -----------------------------------------------
