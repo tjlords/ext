@@ -324,23 +324,25 @@ async def fetch_batches(app, message, org_name):
     
     if "courses" in session_data:
         courses = session_data["courses"]
-         
-    text = "📚 <b>Available Batches</b>\n\n"
-    course_list = []
-    for idx, (course_id, course_name) in enumerate(courses.items(), start=1):
-        text += f"{idx}. <code>{course_name}</code>\n"
-        course_list.append((idx, course_id, course_name))
-    
-    await app.send_message(PREMIUM_LOGS, text)
-    selected_index = await app.ask(
-        message.chat.id, 
-        f"{text}\n"
-        "Send the index number of the batch to download.", 
-        timeout=180
-    )
-    
-    if selected_index.text.isdigit():
+        
+        text = "📚 <b>Available Batches</b>\n\n"
+        course_list = []
+        for idx, (course_id, course_name) in enumerate(courses.items(), start=1):
+            text += f"{idx}. <code>{course_name}</code>\n"
+            course_list.append((idx, course_id, course_name))
+        
+        # Fixed: Removed blockquote wrapper
+        await app.send_message(PREMIUM_LOGS, text)
+        selected_index = await app.ask(
+            message.chat.id, 
+            f"{text}\n"
+            "Send the index number of the batch to download.", 
+            timeout=180
+        )
+        
+        if selected_index.text.isdigit():
             selected_idx = int(selected_index.text.strip())
+            
             if 1 <= selected_idx <= len(course_list):
                 selected_course_id = course_list[selected_idx - 1][1]
                 selected_course_name = course_list[selected_idx - 1][2]
@@ -531,6 +533,3 @@ async def extract_batch(app, message, org_name, batch_id):
         await app.send_document(PREMIUM_LOGS, file_path, caption=caption)
 
         os.remove(file_path)
-            
-
-    
