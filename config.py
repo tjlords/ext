@@ -18,7 +18,8 @@ OWNER_ID = int(os.environ.get("OWNER_ID", ""))
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", ""))
 
 # //FORCE_CHANNEL_ID
-CHANNEL_ID2 = int(os.environ.get("CHANNEL_ID2", "")) 
+# config.py - Fix the CHANNEL_ID2 line
+CHANNEL_ID2 = int(os.environ.get("CHANNEL_ID2", "0"))  # Default to 0 if empty
 # ------------------------------------------------
 MONGO_URL = os.environ.get("MONGO_URL", "")
 # -----------------------------------------------
