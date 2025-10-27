@@ -18,6 +18,7 @@ import pytz
 from Extractor.core.utils import forward_to_log
 import base64
 from urllib.parse import urlparse, parse_qs
+import glob
 
 india_timezone = pytz.timezone('Asia/Kolkata')
 current_time = datetime.now(india_timezone)
@@ -47,12 +48,12 @@ async def classplus_txt(app, message):
             
             device_id = str(uuid.uuid4()).replace('-', '')
             headers = {
-    "Accept": "application/json, text/plain, */*",
-    "region": "IN",
-    "accept-language": "en",
-    "Content-Type": "application/json;charset=utf-8",
-    "Api-Version": "51",
-    "device-id": device_id
+                "Accept": "application/json, text/plain, */*",
+                "region": "IN",
+                "accept-language": "en",
+                "Content-Type": "application/json;charset=utf-8",
+                "Api-Version": "51",
+                "device-id": device_id
             }
             
             # Step 2: Fetch Organization Details
@@ -124,13 +125,13 @@ async def classplus_txt(app, message):
                             
 
                             headers = {
-                                 'x-access-token': token,
-                                 'user-agent': 'Mobile-Android',
-                                 'app-version': '1.4.65.3',
-                                 'api-version': '29',
-                                 'device-id': '39F093FF35F201D9'
-                             }
-                            response = s.get(f"{apiurl}/v2/courses?tabCategoryId=1", headers=headers)  # Corrected indentation here
+                                'x-access-token': token,
+                                'user-agent': 'Mobile-Android',
+                                'app-version': '1.4.65.3',
+                                'api-version': '29',
+                                'device-id': '39F093FF35F201D9'
+                            }
+                            response = s.get(f"{apiurl}/v2/courses?tabCategoryId=1", headers=headers)
                             if response.status_code == 200:
                                 courses = response.json()["data"]["courses"]
                                 s.session_data = {"token": token, "courses": {course["id"]: course["name"] for course in courses}}
@@ -203,13 +204,13 @@ async def classplus_txt(app, message):
                             
 
                             headers = {
-                                 'x-access-token': token,
-                                 'user-agent': 'Mobile-Android',
-                                 'app-version': '1.4.65.3',
-                                 'api-version': '29',
-                                 'device-id': '39F093FF35F201D9'
-                             }
-                            response = s.get(f"{apiurl}/v2/courses?tabCategoryId=1", headers=headers)  # Corrected indentation here
+                                'x-access-token': token,
+                                'user-agent': 'Mobile-Android',
+                                'app-version': '1.4.65.3',
+                                'api-version': '29',
+                                'device-id': '39F093FF35F201D9'
+                            }
+                            response = s.get(f"{apiurl}/v2/courses?tabCategoryId=1", headers=headers)
                             if response.status_code == 200:
                                 courses = response.json()["data"]["courses"]
                                 s.session_data = {"token": token, "courses": {course["id"]: course["name"] for course in courses}}
@@ -252,13 +253,13 @@ async def classplus_txt(app, message):
                             
 
                             headers = {
-                                 'x-access-token': token,
-                                 'user-agent': 'Mobile-Android',
-                                 'app-version': '1.4.65.3',
-                                 'api-version': '29',
-                                 'device-id': '39F093FF35F201D9'
-                             }
-                            response = s.get(f"{apiurl}/v2/courses?tabCategoryId=1", headers=headers)  # Corrected indentation here
+                                'x-access-token': token,
+                                'user-agent': 'Mobile-Android',
+                                'app-version': '1.4.65.3',
+                                'api-version': '29',
+                                'device-id': '39F093FF35F201D9'
+                            }
+                            response = s.get(f"{apiurl}/v2/courses?tabCategoryId=1", headers=headers)
                             if response.status_code == 200:
                                 courses = response.json()["data"]["courses"]
                                 s.session_data = {"token": token, "courses": {course["id"]: course["name"] for course in courses}}
@@ -298,7 +299,6 @@ async def classplus_txt(app, message):
                 shareable_link = course["shareableLink"]
     
                 if "courses.store" in shareable_link:
-  
                     new_data = shareable_link.split('.')[0].split('//')[-1]
                     org_response = s.get(f"https://api.classplusapp.com/v2/orgs/{new_data}", headers=headers)
         
@@ -316,7 +316,6 @@ async def classplus_txt(app, message):
             await message.reply("Invalid token. Please try again.")
     else:
         await message.reply("Invalid input. Please send details in the correct format.")
-
 
 
 async def fetch_batches(app, message, org_name):
@@ -429,8 +428,16 @@ async def extract_batch(app, message, org_name, batch_id):
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=headers) as resp:
-                    course_data = await resp.json()
-                    course_data = course_data["data"]["courseContent"]
+                    try:
+                        course_data = await resp.json()
+                        if "data" in course_data and "courseContent" in course_data["data"]:
+                            course_data = course_data["data"]["courseContent"]
+                        else:
+                            print("No course content found in response")
+                            return result
+                    except Exception as e:
+                        print(f"Error parsing course content: {e}")
+                        return result
 
             # Add folder header if not root level
             if level > 0 and folder_path:
@@ -445,40 +452,33 @@ async def extract_batch(app, message, org_name, batch_id):
                 video_url = item.get("url", "")
                 content_hash = item.get("contentHashId", "")
 
-                if content_type in ("2", "3"):  # Video or PDF
-                    if video_url:
-                        # Add indentation and appropriate icon
-                        indent = "  " * level
-                        
-                        # Check if it's a video file (including DRM and special cases)
-                        video_extensions = ('.m3u8', '.mp4', '.mpd', '.avi', '.mov', '.wmv', '.flv', '.webm')
-                        is_video = (video_url.lower().endswith(video_extensions) or 
-                                   "playlist.m3u8" in video_url or 
-                                   "master.m3u8" in video_url or
-                                   "classplusapp.com/drm" in video_url or
-                                   "testbook.com" in video_url)
-                        
-                        if video_url.lower().endswith('.pdf'):
-                            icon = "📄"
-                            # Remove .pdf from name if present
-                            if sub_name.endswith('.pdf'):
-                                sub_name = sub_name[:-4]
-                        elif is_video:
-                            icon = "🎬"
-                        elif video_url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-                            icon = "🖼"
-                        else:
-                            icon = "📄"
-                        
-                        # Use original URL for direct download
-                        decoded_url = encode_partial_url(video_url)
-                        # Format vertically - each item on its own line (no hash appended)
-                        full_info = f"{indent}{icon} {sub_name}: {decoded_url}\n"
-                        result.append(full_info)
+                # Process all content types that have URLs (not just 2 and 3)
+                if video_url:  # If there's a URL, process it regardless of content type
+                    # Add indentation and appropriate icon
+                    indent = "  " * level
+                    
+                    # Determine content type icon
+                    if video_url.lower().endswith('.pdf'):
+                        icon = "📄"
+                        # Remove .pdf from name if present
+                        if sub_name.endswith('.pdf'):
+                            sub_name = sub_name[:-4]
+                    elif any(ext in video_url.lower() for ext in ['.m3u8', '.mp4', '.mpd', '.avi', '.mov', '.wmv', '.flv', '.webm']):
+                        icon = "🎬"
+                    elif any(ext in video_url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                        icon = "🖼"
+                    else:
+                        icon = "📄"  # Default to document icon for unknown types
+                    
+                    # Use original URL for direct download
+                    decoded_url = encode_partial_url(video_url)
+                    # Format vertically - each item on its own line (no hash appended)
+                    full_info = f"{indent}{icon} {sub_name}: {decoded_url}\n"
+                    result.append(full_info)
 
                 elif content_type == "1":  # Folder
                     new_folder_path = f"{folder_path}{sub_name} - "
-                    # Process folders sequentially (vertically) instead of concurrently (horizontally)
+                    # Process folders recursively
                     sub_content = await process_course_contents(course_id, sub_id, new_folder_path, level + 1)
                     result.extend(sub_content)
 
@@ -496,40 +496,70 @@ async def extract_batch(app, message, org_name, batch_id):
                 file.write(''.join(extracted_data))  
             return file_path
 
-        extracted_data, live_videos = await asyncio.gather(
-            process_course_contents(batch_id),
-            fetch_live_videos(batch_id)
-        )
+        try:
+            extracted_data, live_videos = await asyncio.gather(
+                process_course_contents(batch_id),
+                fetch_live_videos(batch_id)
+            )
 
-        extracted_data.extend(live_videos)
-        file_path = await write_to_file(extracted_data)
+            extracted_data.extend(live_videos)
+            
+            if not extracted_data:
+                await app.send_message(
+                    message.chat.id,
+                    "❌ <b>No Content Found</b>\n\n"
+                    "This batch appears to be empty or inaccessible."
+                )
+                return
 
-        # Count different types of content
-        video_count = sum(1 for line in extracted_data if "🎬" in line and not line.startswith("🎥"))
-        pdf_count = sum(1 for line in extracted_data if "📄" in line and not line.startswith("📁"))
-        image_count = sum(1 for line in extracted_data if "🖼" in line)
-        folder_count = sum(1 for line in extracted_data if "📁" in line and "====" in line)
-        live_video_count = sum(1 for line in extracted_data if "🎬" in line and "contentHashId:" in line)
-        total_links = len(extracted_data)
-        other_count = total_links - (video_count + pdf_count + image_count + folder_count + live_video_count)
-        
-        caption = (
-            f"🎓 <b>COURSE EXTRACTED</b> 🎓\n\n"
-            f"📱 <b>APP:</b> {org_name}\n"
-            f"📚 <b>BATCH:</b> {batch_name}\n"
-            f"📅 <b>DATE:</b> {time_new} IST\n\n"
-            f"📊 <b>CONTENT STATS</b>\n"
-            f"├─ 📁 Total Links: {total_links}\n"
-            f"├─ 🎬 Videos: {video_count}\n"
-            f"├─ 📄 PDFs: {pdf_count}\n"
-            f"├─ 🖼 Images: {image_count}\n"
-            f"├─ 🎥 Live Videos: {live_video_count}\n"
-            f"└─ 📦 Others: {other_count}\n\n"
-            f"🚀 <b>Extracted by</b>: @{(await app.get_me()).username}\n\n"
-            f"<code>╾───• {BOT_TEXT} •───╼</code>"
-        )
+            file_path = await write_to_file(extracted_data)
 
-        await app.send_document(message.chat.id, file_path, caption=caption)
-        await app.send_document(PREMIUM_LOGS, file_path, caption=caption)
+            # Count different types of content
+            video_count = sum(1 for line in extracted_data if "🎬" in line and not line.startswith("🎥"))
+            pdf_count = sum(1 for line in extracted_data if "📄" in line and not line.startswith("📁"))
+            image_count = sum(1 for line in extracted_data if "🖼" in line)
+            folder_count = sum(1 for line in extracted_data if "📁" in line and "====" in line)
+            live_video_count = sum(1 for line in extracted_data if "🎬" in line and line.startswith("🎥"))
+            total_links = len([line for line in extracted_data if any(icon in line for icon in ["🎬", "📄", "🖼"])])
+            other_count = total_links - (video_count + pdf_count + image_count + live_video_count)
+            
+            caption = (
+                f"🎓 <b>COURSE EXTRACTED</b> 🎓\n\n"
+                f"📱 <b>APP:</b> {org_name}\n"
+                f"📚 <b>BATCH:</b> {batch_name}\n"
+                f"📅 <b>DATE:</b> {time_new} IST\n\n"
+                f"📊 <b>CONTENT STATS</b>\n"
+                f"├─ 📁 Total Links: {total_links}\n"
+                f"├─ 🎬 Videos: {video_count}\n"
+                f"├─ 📄 PDFs: {pdf_count}\n"
+                f"├─ 🖼 Images: {image_count}\n"
+                f"├─ 🎥 Live Videos: {live_video_count}\n"
+                f"└─ 📦 Others: {other_count}\n\n"
+                f"🚀 <b>Extracted by</b>: @{(await app.get_me()).username}\n\n"
+                f"<code>╾───• {BOT_TEXT} •───╼</code>"
+            )
 
-        os.remove(file_path)
+            await app.send_document(message.chat.id, file_path, caption=caption)
+            await app.send_document(PREMIUM_LOGS, file_path, caption=caption)
+
+            # Clean up files
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                
+            # Additional cleanup for temporary files
+            temp_files = glob.glob("*.txt") + glob.glob("*.pdf") + glob.glob("*.tmp")
+            for temp_file in temp_files:
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except Exception as e:
+                    print(f"Error cleaning up {temp_file}: {e}")
+
+        except Exception as e:
+            await app.send_message(
+                message.chat.id,
+                f"❌ <b>Extraction Error</b>\n\n"
+                f"Error: {str(e)}\n"
+                "Please try again or contact support."
+            )
+            print(f"Extraction error: {e}")
