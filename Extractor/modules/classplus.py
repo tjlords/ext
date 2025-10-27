@@ -325,22 +325,22 @@ async def fetch_batches(app, message, org_name):
     if "courses" in session_data:
         courses = session_data["courses"]
         
-        
-      
         text = "📚 <b>Available Batches</b>\n\n"
-        course_list = []
-        for idx, (course_id, course_name) in enumerate(courses.items(), start=1):
-            text += f"{idx}. <code>{course_name}</code>\n"
-            course_list.append((idx, course_id, course_name))
-        
-        await app.send_message(PREMIUM_LOGS, f"<blockquote>{text}</blockquote>")
-        selected_index = await app.ask(
-            message.chat.id, 
-            f"{text}\n"
-            "Send the index number of the batch to download.", 
-            timeout=180
-        )
-        
+course_list = []
+for idx, (course_id, course_name) in enumerate(courses.items(), start=1):
+    text += f"{idx}. <code>{course_name}</code>\n"
+    course_list.append((idx, course_id, course_name))
+
+# Remove the blockquote - just send the text as is
+await app.send_message(PREMIUM_LOGS, text)
+
+selected_index = await app.ask(
+    message.chat.id, 
+    f"{text}\n"
+    "Send the index number of the batch to download.", 
+    timeout=180
+)
+    
         if selected_index.text.isdigit():
             selected_idx = int(selected_index.text.strip())
             
